@@ -16,9 +16,19 @@ export const sqlConfig: sql.config = {
 
 export const getConnection = async () => {
   try {
+    console.log("🗄️ DATABASE - Intentando conectar a la base de datos...");
+    console.log("🗄️ DATABASE - Configuración:", {
+      server: process.env.DB_SERVER,
+      database: process.env.DB_DATABASE,
+      port: process.env.DB_PORT,
+      user: process.env.DB_USER
+    });
+    
     const pool = await sql.connect(sqlConfig);
+    console.log("🟢 DATABASE - Conexión exitosa a la base de datos");
     return pool;
   } catch (err) {
+    console.log("🔴 DATABASE - Error conectando a la base de datos:", err);
     throw err;
   }
 }; 

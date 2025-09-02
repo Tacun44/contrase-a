@@ -88,12 +88,12 @@ GO
 
 -- Procedimiento almacenado para autenticar usuario
 CREATE OR ALTER PROCEDURE sp_AutenticarUsuario
-    @correo NVARCHAR(100)
+    @usuario_o_correo NVARCHAR(100)
 AS
 BEGIN
     SELECT id, nombre, correo, contraseña_hash, rol
     FROM Usuarios
-    WHERE correo = @correo;
+    WHERE correo = @usuario_o_correo OR nombre = @usuario_o_correo;
 END
 GO
 
@@ -157,10 +157,18 @@ BEGIN
 END
 GO
 
--- Crear usuario admin inicial (contraseña: admin123)
+-- Crear usuarios iniciales
 -- Nota: En producción, esto debería hacerse de forma más segura
+
+-- Usuario Administrador (contraseña: admin123)
 INSERT INTO Usuarios (nombre, correo, contraseña_hash, rol)
 SELECT 'Administrador', 'admin@empresa.com', 
-       '$2b$10$YourHashedPasswordHere', 'admin'
+       '$2b$10$Wa/CKS2txdJEjwpxZxL2u.rufh7eduKgzQD1lo4u5f3LUiCh7.o9O', 'admin'
 WHERE NOT EXISTS (SELECT 1 FROM Usuarios WHERE correo = 'admin@empresa.com');
+
+-- Usuario Emmanuel (contraseña: emmanuel123)
+INSERT INTO Usuarios (nombre, correo, contraseña_hash, rol)
+SELECT 'emmanuel', 'emmanuel@empresa.com', 
+       '$2b$10$SYfleCfwxm2T7qo5uzRJKuSVfRiMFRsCc8ORMLFRs56gfBjt9v1x2', 'invitado'
+WHERE NOT EXISTS (SELECT 1 FROM Usuarios WHERE nombre = 'emmanuel');
 GO 

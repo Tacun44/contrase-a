@@ -12,11 +12,14 @@ app.use(cors());
 app.use(express.json());
 
 app.get('/api/ping', async (req, res) => {
+  console.log("🏓 PING - Verificando conexión a la base de datos...");
   try {
     const pool = await getConnection();
     const result = await pool.request().query('SELECT 1 AS ok');
+    console.log("🟢 PING - Consulta exitosa:", result.recordset[0]);
     res.json({ db: result.recordset[0].ok === 1, message: 'API funcionando' });
   } catch (err) {
+    console.log("🔴 PING - Error en la consulta:", err);
     res.status(500).json({ error: 'Error de conexión a la base de datos', details: err.message || err });
   }
 });
