@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import { setToken } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
@@ -7,10 +7,29 @@ export default function LoginPage() {
   const [usuario_o_correo, setUsuario_o_correo] = useState("");
   const [contraseña, setContraseña] = useState("");
   const [error, setError] = useState("");
+  const [recordarCredenciales, setRecordarCredenciales] = useState(false);
   const navigate = useNavigate();
 
+  // Cargar credenciales guardadas al cargar la página
+  useEffect(() => {
+    const credencialesGuardadas = localStorage.getItem('credencialesRecordadas');
+    if (credencialesGuardadas) {
+      try {
+        const { usuario, contraseña: pass, recordar } = JSON.parse(credencialesGuardadas);
+        if (recordar) {
+          setUsuario_o_correo(usuario);
+          setContraseña(pass);
+          setRecordarCredenciales(true);
+          console.log("🔑 LOGIN - Credenciales cargadas desde localStorage");
+        }
+      } catch (error) {
+        console.error("Error al cargar credenciales guardadas:", error);
+        localStorage.removeItem('credencialesRecordadas');
+      }
+    }
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("🚀 FRONTEND - handleSubmit ejecutado");
     e.preventDefault();
     setError("");
     
@@ -19,25 +38,28 @@ export default function LoginPage() {
       contraseña,
     };
     
-    console.log("🔵 FRONTEND - Enviando datos de login:", loginData);
-    console.log("🔵 FRONTEND - URL del endpoint:", "http://localhost:4000/api/auth/login");
-    
     try {
-      console.log("🟡 FRONTEND - Haciendo petición...");
       const res = await axios.post("http://localhost:4000/api/auth/login", loginData);
-      console.log("🟢 FRONTEND - Respuesta del servidor:", res.data);
-      console.log("🟢 FRONTEND - Token recibido:", res.data.token);
       
-      console.log("🟡 FRONTEND - Guardando token...");
+      // Guardar token
       setToken(res.data.token);
       
-      console.log("🟡 FRONTEND - Navegando a /...");
+      // Guardar credenciales si el usuario marcó "Recordar"
+      if (recordarCredenciales) {
+        const credencialesParaGuardar = {
+          usuario: usuario_o_correo,
+          contraseña: contraseña,
+          recordar: true,
+          fechaGuardado: new Date().toISOString()
+        };
+        localStorage.setItem('credencialesRecordadas', JSON.stringify(credencialesParaGuardar));
+      } else {
+        localStorage.removeItem('credencialesRecordadas');
+      }
+      
+      // Navegar al gestor de contraseñas
       navigate("/");
-      console.log("🟢 FRONTEND - Navegación completada");
     } catch (err: any) {
-      console.log("🔴 FRONTEND - Error completo:", err);
-      console.log("🔴 FRONTEND - Error response:", err.response);
-      console.log("🔴 FRONTEND - Error message:", err.message);
       setError(err.response?.data?.error || "Error de autenticación");
     }
   };
@@ -92,6 +114,19 @@ export default function LoginPage() {
               placeholder="Ingresa tu contraseña"
               required
             />
+          </div>
+
+          {/* Checkbox Recordar Credenciales */}
+          <div className="form-group checkbox-group">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={recordarCredenciales}
+                onChange={(e) => setRecordarCredenciales(e.target.checked)}
+                className="checkbox-input"
+              />
+              <span className="checkbox-text">Recordar mis credenciales</span>
+            </label>
           </div>
 
           {/* Botón de login */}

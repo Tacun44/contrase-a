@@ -1,8 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
-import CredencialesPage from "./pages/CredencialesPage";
+import PasswordManagerPage from "./pages/PasswordManagerPage";
 import { isAuthenticated } from "./utils/auth";
 
 function PrivateRoute({ children }: { children: React.ReactElement }) {
@@ -10,7 +9,6 @@ function PrivateRoute({ children }: { children: React.ReactElement }) {
 }
 
 export default function App() {
-  
   return (
     <BrowserRouter>
       <Routes>
@@ -19,11 +17,15 @@ export default function App() {
           path="/"
           element={
             <PrivateRoute>
-              <DashboardPage />
+              <PasswordManagerPage />
             </PrivateRoute>
           }
         />
-        <Route path="/credenciales" element={<CredencialesPage />} />
+        <Route path="/manager" element={
+          <PrivateRoute>
+            <PasswordManagerPage />
+          </PrivateRoute>
+        } />
       </Routes>
     </BrowserRouter>
   );

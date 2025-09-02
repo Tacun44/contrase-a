@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpiar Caché</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f0f9ff;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        .success {
+            background: #10b981;
+            color: white;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .button {
+            background: #2563eb;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+        .button:hover {
+            background: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Nueva Versión del Password Manager</h1>
+        <div class="success">
+            ✅ Caché limpiado correctamente
+        </div>
+        <p>La nueva versión de la aplicación está lista.</p>
+        <p>Ahora puedes ver:</p>
+        <ul style="text-align: left; display: inline-block;">
+            <li>Header con navegación</li>
+            <li>Sidebar con menú</li>
+            <li>Dashboard con estadísticas</li>
+            <li>Diseño profesional y moderno</li>
+        </ul>
+        <br><br>
+        <button class="button" onclick="window.location.href='/'">
+            Ir a la Aplicación
+        </button>
+        <button class="button" onclick="window.location.reload()">
+            Recargar Página
+        </button>
+    </div>
+
+    <script>
+        // Limpiar localStorage
+        localStorage.clear();
+        sessionStorage.clear();
+        
+        // Forzar recarga sin caché
+        if ('caches' in window) {
+            caches.keys().then(function(names) {
+                for (let name of names) {
+                    caches.delete(name);
+                }
+            });
+        }
+        
+        console.log('🧹 Caché limpiado completamente');
+    </script>
+</body>
+</html>

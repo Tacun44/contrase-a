@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { getToken, logout } from "../utils/auth";
 import { useNavigate } from "react-router-dom";
+import BitwardenLayout from "../components/BitwardenLayout";
+import BitwardenDashboard from "../components/BitwardenDashboard";
 
 type Credencial = {
   id: number;
@@ -9,6 +11,7 @@ type Credencial = {
   usuario: string;
   contraseña_encriptada?: string;
   notas: string;
+  fecha_creacion: string;
 };
 
 export default function CredencialesPage() {
@@ -20,11 +23,13 @@ export default function CredencialesPage() {
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
   const [showPasswords, setShowPasswords] = useState<{[key: number]: boolean}>({});
+  const [activeSection, setActiveSection] = useState("dashboard");
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const navigate = useNavigate();
 
   const fetchCredenciales = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/api/credenciales", {
+              const res = await axios.get("http://localhost:4000/api/credenciales", {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       setCredenciales(res.data);
@@ -33,8 +38,27 @@ export default function CredencialesPage() {
     }
   };
 
+  const fetchUserInfo = async () => {
+    try {
+      // Decodificar el token JWT para obtener la información del usuario
+      const token = getToken();
+      if (token) {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setCurrentUser({
+          id: payload.id,
+          nombre: payload.nombre || 'Usuario',
+          correo: payload.correo || '',
+          rol: payload.rol || 'user'
+        });
+      }
+    } catch (err) {
+      console.error('Error al obtener información del usuario:', err);
+    }
+  };
+
   useEffect(() => {
     fetchCredenciales();
+    fetchUserInfo();
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,174 +136,271 @@ export default function CredencialesPage() {
     }
   };
 
-  return (
-    <div className="credenciales-container">
-      {/* Header */}
-      <div className="credenciales-header">
-        <h1 className="credenciales-title">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-          </svg>
-          Mis Credenciales
-        </h1>
-        <button onClick={handleLogout} className="logout-button">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-          </svg>
-          Cerrar Sesión
-        </button>
-      </div>
+  const renderContent = () => {
+    switch (activeSection) {
+      case 'dashboard':
+        return (
+          <BitwardenDashboard 
+            user={currentUser} 
+            totalPasswords={credenciales.length}
+            recentPasswords={credenciales}
+          />
+        );
+      case 'passwords':
+        return renderPasswordsSection();
+      case 'tools':
+        return renderToolsSection();
+      case 'security':
+        return renderSecuritySection();
+      case 'settings':
+        return renderSettingsSection();
+      default:
+        return (
+          <BitwardenDashboard 
+            user={currentUser} 
+            totalPasswords={credenciales.length}
+            recentPasswords={credenciales}
+          />
+        );
+    }
+  };
 
-      {/* Content */}
-      <div className="credenciales-content">
-        {/* Formulario para agregar credencial */}
-        <div className="add-credential-card">
-          <h2 className="add-credential-title">
+  const renderPasswordsSection = () => {
+    return (
+      <div className="passwords-section">
+        <div className="section-header">
+          <h1 className="section-title">Mis Contraseñas</h1>
+          <button 
+            onClick={() => setActiveSection('dashboard')}
+            className="add-password-btn"
+          >
             <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Agregar Nueva Credencial
-          </h2>
-          
-          <form onSubmit={handleSubmit} className="credential-form">
-            {error && <div className="error-message">{error}</div>}
-            {mensaje && <div className="success-message">{mensaje}</div>}
-            
-            <div className="form-group">
-              <label className="form-label">Servicio</label>
-              <input
-                type="text"
-                placeholder="Ej: Gmail, Facebook, GitHub..."
-                value={servicio}
-                onChange={(e) => setServicio(e.target.value)}
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Usuario/Email</label>
-              <input
-                type="text"
-                placeholder="usuario@ejemplo.com"
-                value={usuario}
-                onChange={(e) => setUsuario(e.target.value)}
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Contraseña</label>
-              <input
-                type="password"
-                placeholder="Tu contraseña"
-                value={contraseña}
-                onChange={(e) => setContraseña(e.target.value)}
-                className="form-input"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Notas (Opcional)</label>
-              <input
-                type="text"
-                placeholder="Información adicional..."
-                value={notas}
-                onChange={(e) => setNotas(e.target.value)}
-                className="form-input"
-              />
-            </div>
-
-            <button type="submit" className="submit-button">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              Guardar Credencial
-            </button>
-          </form>
+            Agregar Nueva
+          </button>
         </div>
+        {renderPasswordsList()}
+      </div>
+    );
+  };
 
-        {/* Lista de credenciales */}
-        <div className="credenciales-list">
-          <h2 className="credenciales-list-title">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Credenciales Guardadas
-          </h2>
-
-          {credenciales.length === 0 ? (
-            <div className="empty-state">
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-              </svg>
-              <h3>No hay credenciales guardadas</h3>
-              <p>Agrega tu primera credencial usando el formulario de la izquierda</p>
-            </div>
-          ) : (
-            credenciales.map((c) => (
-              <div key={c.id} className="credential-card">
-                <div className="credential-header">
-                  <div className="credential-service">
-                    {getServiceIcon(c.servicio)}
-                    {c.servicio}
-                  </div>
-                  <div className="credential-actions">
-                    <button
-                      onClick={() => copyToClipboard(c.usuario)}
-                      className="action-button copy-button"
-                      title="Copiar usuario"
-                    >
-                      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => togglePasswordVisibility(c.id)}
-                      className="action-button view-button"
-                      title={showPasswords[c.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
-                    >
-                      {showPasswords[c.id] ? (
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                        </svg>
-                      ) : (
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                      )}
-                    </button>
-                  </div>
-                </div>
-
-                <div className="credential-details">
-                  <div className="credential-field">
-                    <span className="credential-label">Usuario</span>
-                    <div className="credential-value">{c.usuario}</div>
-                  </div>
-                  
-                  <div className="credential-field">
-                    <span className="credential-label">Contraseña</span>
-                    <div className="credential-value">
-                      {showPasswords[c.id] ? c.contraseña_encriptada || "••••••••" : "••••••••"}
-                    </div>
-                  </div>
-                  
-                  {c.notas && (
-                    <div className="credential-field">
-                      <span className="credential-label">Notas</span>
-                      <div className="credential-value">{c.notas}</div>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
+  const renderToolsSection = () => {
+    return (
+      <div className="tools-section">
+        <h1 className="section-title">Herramientas</h1>
+        <div className="tools-grid">
+          <div className="tool-card">
+            <h3>Generador de Contraseñas</h3>
+            <p>Crea contraseñas seguras al instante</p>
+          </div>
+          <div className="tool-card">
+            <h3>Probador de Fuerza</h3>
+            <p>Verifica la seguridad de tus contraseñas</p>
+          </div>
+          <div className="tool-card">
+            <h3>Análisis de Seguridad</h3>
+            <p>Identifica contraseñas débiles o reutilizadas</p>
+          </div>
         </div>
       </div>
+    );
+  };
+
+  const renderSecuritySection = () => {
+    return (
+      <div className="security-section">
+        <h1 className="section-title">Seguridad</h1>
+        <div className="security-cards">
+          <div className="security-card">
+            <h3>Estado de Seguridad</h3>
+            <p>Tu cuenta está protegida con encriptación de extremo a extremo.</p>
+          </div>
+          <div className="security-card">
+            <h3>Último Acceso</h3>
+            <p>Hace unos minutos</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderSettingsSection = () => {
+    return (
+      <div className="settings-section">
+        <h1 className="section-title">Configuración</h1>
+        <div className="settings-cards">
+          <div className="setting-card">
+            <h3>Perfil</h3>
+            <p>Gestiona tu información personal</p>
+          </div>
+          <div className="setting-card">
+            <h3>Notificaciones</h3>
+            <p>Configura las alertas de seguridad</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderPasswordsList = () => {
+    return (
+      <div className="passwords-list">
+        {credenciales.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-icon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3>No hay credenciales guardadas</h3>
+            <p>Agrega tu primera credencial para comenzar a gestionar tus contraseñas de forma segura</p>
+            <button 
+              className="add-first-credential-btn"
+              onClick={() => setActiveSection('dashboard')}
+            >
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              Agregar Primera Credencial
+            </button>
+          </div>
+        ) : (
+          <div className="credentials-container">
+            <div className="credentials-header">
+              <div className="credentials-stats">
+                <span className="stats-number">{credenciales.length}</span>
+                <span className="stats-label">credenciales guardadas</span>
+              </div>
+              <div className="credentials-actions">
+                <button className="filter-btn">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                  </svg>
+                  Filtrar
+                </button>
+                <button className="search-btn">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                  Buscar
+                </button>
+              </div>
+            </div>
+            
+            <div className="credentials-grid">
+              {credenciales.map((c) => (
+                <div key={c.id} className="credential-card">
+                  <div className="credential-header">
+                    <div className="credential-service">
+                      <div className="service-icon">
+                        {getServiceIcon(c.servicio)}
+                      </div>
+                      <div className="service-info">
+                        <h4 className="service-name">{c.servicio}</h4>
+                        <span className="service-user">{c.usuario}</span>
+                      </div>
+                    </div>
+                    <div className="credential-actions">
+                      <button
+                        onClick={() => copyToClipboard(c.usuario)}
+                        className="action-button copy-button"
+                        title="Copiar usuario"
+                      >
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => togglePasswordVisibility(c.id)}
+                        className="action-button view-button"
+                        title={showPasswords[c.id] ? "Ocultar contraseña" : "Mostrar contraseña"}
+                      >
+                        {showPasswords[c.id] ? (
+                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
+                          </svg>
+                        ) : (
+                          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
+                      <button className="action-button edit-button" title="Editar">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="credential-details">
+                    <div className="credential-field">
+                      <span className="credential-label">Contraseña</span>
+                      <div className="credential-value password-field">
+                        {showPasswords[c.id] ? c.contraseña_encriptada || "••••••••" : "••••••••"}
+                      </div>
+                    </div>
+                    
+                    {c.notas && (
+                      <div className="credential-field">
+                        <span className="credential-label">Notas</span>
+                        <div className="credential-value notes-field">{c.notas}</div>
+                      </div>
+                    )}
+                    
+                    <div className="credential-meta">
+                      <span className="credential-date">
+                        Creado: {new Date(c.fecha_creacion).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  if (!currentUser) {
+    return <div>Cargando...</div>;
+  }
+
+  console.log("🟢 CREDENCIALES PAGE - Renderizando nueva estructura con usuario:", currentUser);
+  
+  // Elemento temporal para forzar actualización del caché
+  const cacheBuster = "🚀 NUEVA VERSIÓN BITWARDEN - " + new Date().getTime();
+
+
+
+  return (
+    <div>
+      {/* Elemento temporal para forzar actualización del caché */}
+      <div style={{
+        position: 'fixed',
+        top: '10px',
+        right: '10px',
+        background: '#175ddc',
+        color: 'white',
+        padding: '10px 15px',
+        borderRadius: '5px',
+        fontSize: '12px',
+        zIndex: 9999,
+        fontWeight: 'bold'
+      }}>
+        {cacheBuster}
+      </div>
+      
+      <BitwardenLayout 
+        currentUser={currentUser}
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      >
+        {renderContent()}
+      </BitwardenLayout>
     </div>
   );
 }
