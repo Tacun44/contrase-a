@@ -291,13 +291,53 @@ export const listarCredenciales = async (req: Request, res: Response) => {
 export const actualizarCredencial = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const { servicio, usuario, contraseña } = req.body;
+    const { servicio, usuario, contraseña, notes } = req.body;
     const id_usuario = (req as any).user?.id;
     
     if (!id_usuario) {
       return res.status(401).json({ error: "Usuario no autenticado" });
     }
     
+    // Si solo se están actualizando las notas, no requerir otros campos
+    if (notes !== undefined && servicio === undefined && usuario === undefined && contraseña === undefined) {
+      console.log("📝 CREDENCIALES - Actualizando solo notas para ID:", id);
+      
+      try {
+        const pool = await getConnection();
+        
+        // Verificar que la credencial pertenece al usuario
+        const userResult = await pool.request()
+          .input('user_id', id_usuario)
+          .input('password_id', id)
+          .query(`
+            SELECT p.id FROM passwords p
+            INNER JOIN user_passwords up ON p.id = up.passwordId
+            WHERE up.userId = @user_id AND p.id = @password_id
+          `);
+        
+        if (userResult.recordset.length === 0) {
+          return res.status(404).json({ error: "Credencial no encontrada o no tienes permisos para editarla" });
+        }
+        
+        // Actualizar solo las notas
+        await pool.request()
+          .input('password_id', id)
+          .input('notes', notes || '')
+          .query(`
+            UPDATE passwords 
+            SET notes = @notes, updatedAt = GETDATE()
+            WHERE id = @password_id
+          `);
+        
+        console.log("✅ CREDENCIALES - Notas actualizadas en BD");
+        return res.json({ message: "Notas actualizadas exitosamente" });
+      } catch (dbError) {
+        console.log("⚠️ CREDENCIALES - Error de BD al actualizar notas:", dbError.message);
+        return res.status(500).json({ error: "Error al actualizar notas en la base de datos" });
+      }
+    }
+    
+    // Validación para actualización completa
     if (!servicio || !usuario || !contraseña) {
       return res.status(400).json({ error: "Faltan datos obligatorios" });
     }

@@ -723,7 +723,7 @@ export default function PasswordManagerPage() {
         return;
       }
 
-      await axios.put(`http://localhost:3001/api/passwords/${passwordId}`, {
+      await axios.put(`http://localhost:4000/api/credenciales/${passwordId}`, {
         notes: tempNotes[passwordId] || ''
       }, {
         headers: { Authorization: `Bearer ${token}` }
@@ -733,8 +733,15 @@ export default function PasswordManagerPage() {
       setTempNotes(prev => ({ ...prev, [passwordId]: '' }));
       setSuccess("Notas actualizadas exitosamente");
       fetchPasswords();
+      
+      // Limpiar mensaje de éxito después de 3 segundos
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
-      setError(err.response?.data?.message || "Error al actualizar las notas");
+      console.error("Error al guardar notas:", err);
+      setError(err.response?.data?.error || err.response?.data?.message || "Error al actualizar las notas");
+      
+      // Limpiar mensaje de error después de 5 segundos
+      setTimeout(() => setError(""), 5000);
     }
   };
 
