@@ -30,6 +30,62 @@ export const login = async (req: Request, res: Response) => {
       correo: 'victor@empresa.com',
       contraseña: '1003249588',
       rol: 'admin'
+    },
+    {
+      id: 3,
+      nombre: 'ositopanda',
+      nombre_completo: 'Ositopanda Private',
+      correo: 'ositopanda.private@gmail.com',
+      contraseña: '1033096191',
+      rol: 'admin'
+    },
+    {
+      id: 4,
+      nombre: 'agenteia',
+      nombre_completo: 'Agente IA Mobilsoft',
+      correo: 'agenteiamobilsoft@gmail.com',
+      contraseña: 'AgenteIA2024!',
+      rol: 'admin'
+    },
+    {
+      id: 5,
+      nombre: 'developer',
+      nombre_completo: 'Developer Demo',
+      correo: 'developer@demo.mobilsoft.co',
+      contraseña: 'Developer2025!',
+      rol: 'user'
+    },
+    {
+      id: 6,
+      nombre: 'gerencia',
+      nombre_completo: 'Gerencia Mobilsoft',
+      correo: 'gerencia@mobilsoft.co',
+      contraseña: 'VPSAdmin2024!',
+      rol: 'admin'
+    },
+    {
+      id: 7,
+      nombre: 'root',
+      nombre_completo: 'Root VPS',
+      correo: 'root@vps.mobilsoft.co',
+      contraseña: 'RootVPS2024!',
+      rol: 'admin'
+    },
+    {
+      id: 8,
+      nombre: 'mobilsoft',
+      nombre_completo: 'Mobilsoft SAS',
+      correo: 'mobilsoftsas@gmail.com',
+      contraseña: 'TestPassword123!',
+      rol: 'admin'
+    },
+    {
+      id: 9,
+      nombre: 'whither',
+      nombre_completo: 'Whither Developer',
+      correo: 'whither82@gmail.com',
+      contraseña: 'Purbea2024!',
+      rol: 'user'
     }
   ];
 
@@ -56,6 +112,26 @@ export const login = async (req: Request, res: Response) => {
         
         if (contraseñaValida) {
           console.log("✅ BACKEND - Usuario autenticado desde BD:", user.username);
+
+          // Marcar este usuario como activo y desactivar todos los demás
+          try {
+            // Desactivar todos los usuarios
+            await pool.request().query(`
+              UPDATE users SET isActive = 0
+            `);
+            
+            // Activar solo el usuario que se está logueando
+            await pool.request()
+              .input('userId', user.id)
+              .query(`
+                UPDATE users SET isActive = 1 WHERE id = @userId
+              `);
+            
+            console.log("🔄 BACKEND - Estado de usuarios actualizado:", user.username, "activo, otros inactivos");
+          } catch (statusError) {
+            console.log("⚠️ BACKEND - Error actualizando estado de usuarios:", statusError.message);
+            // Continuar con el login aunque falle la actualización de estado
+          }
 
           // Generar JWT
           const token = jwt.sign(

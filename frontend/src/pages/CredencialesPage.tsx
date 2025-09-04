@@ -29,7 +29,7 @@ export default function CredencialesPage() {
 
   const fetchCredenciales = async () => {
     try {
-              const res = await axios.get("http://localhost:4000/api/credenciales", {
+      const res = await axios.get("http://localhost:4000/api/credenciales", {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       setCredenciales(res.data);
@@ -139,7 +139,7 @@ export default function CredencialesPage() {
   const renderContent = () => {
     switch (activeSection) {
       case 'dashboard':
-        return (
+  return (
           <BitwardenDashboard 
             user={currentUser} 
             totalPasswords={credenciales.length}
@@ -255,7 +255,7 @@ export default function CredencialesPage() {
             </div>
             <h3>No hay credenciales guardadas</h3>
             <p>Agrega tu primera credencial para comenzar a gestionar tus contraseñas de forma segura</p>
-            <button 
+        <button
               className="add-first-credential-btn"
               onClick={() => setActiveSection('dashboard')}
             >
@@ -284,12 +284,12 @@ export default function CredencialesPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                   Buscar
-                </button>
+        </button>
               </div>
             </div>
-            
+
             <div className="credentials-grid">
-              {credenciales.map((c) => (
+        {credenciales.map((c) => (
                 <div key={c.id} className="credential-card">
                   <div className="credential-header">
                     <div className="credential-service">

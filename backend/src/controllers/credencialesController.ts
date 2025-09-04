@@ -2,6 +2,86 @@ import { Request, Response } from "express";
 import { getConnection } from "../config/db";
 import { encrypt, decrypt } from "../utils/crypto";
 
+// Función para asignar categoría automáticamente
+const getServiceCategory = (servicio: string, usuario: string = ''): string => {
+  const service = servicio.toLowerCase();
+  const user = usuario.toLowerCase();
+  
+  // Gmail específico - si el servicio es Gmail o el usuario termina en @gmail.com
+  if (service.includes('gmail') || service.includes('google') || user.endsWith('@gmail.com')) {
+    return 'Gmail';
+  }
+  
+  // Email y productividad (otros proveedores)
+  if (service.includes('outlook') || service.includes('microsoft') ||
+      service.includes('yahoo') || service.includes('hotmail') ||
+      user.endsWith('@outlook.com') || user.endsWith('@hotmail.com') ||
+      user.endsWith('@yahoo.com') || user.endsWith('@live.com')) {
+    return 'Email';
+  }
+  
+  // Redes sociales
+  if (service.includes('facebook') || service.includes('meta') ||
+      service.includes('instagram') || service.includes('twitter') ||
+      service.includes('x.com') || service.includes('linkedin') ||
+      service.includes('tiktok') || service.includes('snapchat') ||
+      service.includes('pinterest') || service.includes('reddit')) {
+    return 'Redes Sociales';
+  }
+  
+  // Desarrollo y programación
+  if (service.includes('github') || service.includes('gitlab') ||
+      service.includes('bitbucket') || service.includes('stackoverflow') ||
+      service.includes('codepen') || service.includes('jsfiddle') ||
+      service.includes('heroku') || service.includes('vercel') ||
+      service.includes('netlify') || service.includes('aws') ||
+      service.includes('azure') || service.includes('digitalocean')) {
+    return 'Desarrollo';
+  }
+  
+  // Streaming y entretenimiento
+  if (service.includes('netflix') || service.includes('youtube') ||
+      service.includes('spotify') || service.includes('twitch') ||
+      service.includes('disney') || service.includes('hulu') ||
+      service.includes('amazon prime') || service.includes('hbo')) {
+    return 'Entretenimiento';
+  }
+  
+  // Compras y e-commerce
+  if (service.includes('amazon') || service.includes('ebay') ||
+      service.includes('mercadolibre') || service.includes('aliexpress') ||
+      service.includes('walmart') || service.includes('target')) {
+    return 'Compras';
+  }
+  
+  // Banca y finanzas
+  if (service.includes('paypal') || service.includes('stripe') ||
+      service.includes('visa') || service.includes('mastercard') ||
+      service.includes('banco') || service.includes('bank') ||
+      service.includes('bbva') || service.includes('santander')) {
+    return 'Finanzas';
+  }
+  
+  // Hosting y servidores
+  if (service.includes('hostinger') || service.includes('godaddy') ||
+      service.includes('namecheap') || service.includes('cloudflare') ||
+      service.includes('vps') || service.includes('server') ||
+      service.includes('hosting') || service.includes('domain')) {
+    return 'Hosting';
+  }
+  
+  // Gaming
+  if (service.includes('steam') || service.includes('epic') ||
+      service.includes('xbox') || service.includes('playstation') ||
+      service.includes('nintendo') || service.includes('blizzard') ||
+      service.includes('riot') || service.includes('ubisoft')) {
+    return 'Gaming';
+  }
+  
+  // Por defecto
+  return 'Otros';
+};
+
 // Credenciales temporales como respaldo
 let credencialesTemporales = [
   // Credenciales de Emmanuel (ID: 1)
@@ -75,6 +155,9 @@ export const crearCredencial = async (req: Request, res: Response) => {
     try {
       const pool = await getConnection();
       
+      // Asignar categoría automáticamente
+      const categoria = getServiceCategory(servicio, usuario);
+      
       // Insertar en la tabla passwords (adaptado a tu estructura real)
       const result = await pool.request()
         .input('title', servicio)
@@ -82,10 +165,11 @@ export const crearCredencial = async (req: Request, res: Response) => {
         .input('password', contraseña)
         .input('website', '')
         .input('notes', '')
+        .input('category', categoria)
         .query(`
-          INSERT INTO passwords (title, username, password, website, notes, createdAt, updatedAt)
-          OUTPUT INSERTED.id, INSERTED.title, INSERTED.username, INSERTED.website, INSERTED.notes
-          VALUES (@title, @username, @password, @website, @notes, GETDATE(), GETDATE())
+          INSERT INTO passwords (title, username, password, website, notes, category, createdAt, updatedAt)
+          OUTPUT INSERTED.id, INSERTED.title, INSERTED.username, INSERTED.website, INSERTED.notes, INSERTED.category
+          VALUES (@title, @username, @password, @website, @notes, @category, GETDATE(), GETDATE())
         `);
       
       const nuevaCredencial = result.recordset[0];
@@ -200,6 +284,84 @@ export const listarCredenciales = async (req: Request, res: Response) => {
   } catch (err: any) {
     console.log("🔴 CREDENCIALES - Error:", err.message || err);
     res.status(500).json({ error: "Error al obtener credenciales", details: err.message || err });
+  }
+};
+
+// Actualizar credencial
+export const actualizarCredencial = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { servicio, usuario, contraseña } = req.body;
+    const id_usuario = (req as any).user?.id;
+    
+    if (!id_usuario) {
+      return res.status(401).json({ error: "Usuario no autenticado" });
+    }
+    
+    if (!servicio || !usuario || !contraseña) {
+      return res.status(400).json({ error: "Faltan datos obligatorios" });
+    }
+    
+    console.log("✏️ CREDENCIALES - Usuario actualizando credencial:", id_usuario, "ID:", id);
+    
+    // Intentar conectar a la base de datos
+    try {
+      const pool = await getConnection();
+      
+      // Verificar que la credencial pertenece al usuario
+      const userResult = await pool.request()
+        .input('user_id', id_usuario)
+        .input('password_id', id)
+        .query(`
+          SELECT p.id FROM passwords p
+          INNER JOIN user_passwords up ON p.id = up.passwordId
+          WHERE up.userId = @user_id AND p.id = @password_id
+        `);
+      
+      if (userResult.recordset.length === 0) {
+        return res.status(404).json({ error: "Credencial no encontrada o no tienes permisos para editarla" });
+      }
+      
+      // Asignar categoría automáticamente
+      const categoria = getServiceCategory(servicio, usuario);
+      
+      // Actualizar la credencial
+      await pool.request()
+        .input('password_id', id)
+        .input('title', servicio)
+        .input('username', usuario)
+        .input('password', contraseña)
+        .input('category', categoria)
+        .query(`
+          UPDATE passwords 
+          SET title = @title, username = @username, password = @password, category = @category, updatedAt = GETDATE()
+          WHERE id = @password_id
+        `);
+      
+      console.log("✅ CREDENCIALES - Credencial actualizada en BD");
+      return res.json({ message: "Credencial actualizada exitosamente" });
+    } catch (dbError) {
+      console.log("⚠️ CREDENCIALES - Error de BD, usando datos temporales:", dbError.message);
+    }
+
+    // Fallback a datos temporales
+    const credencialIndex = credencialesTemporales.findIndex(c => c.id === parseInt(id) && c.id_usuario === id_usuario);
+    if (credencialIndex === -1) {
+      return res.status(404).json({ error: "Credencial no encontrada" });
+    }
+    
+    credencialesTemporales[credencialIndex] = {
+      ...credencialesTemporales[credencialIndex],
+      servicio,
+      usuario,
+      contraseña
+    };
+    
+    console.log("✅ CREDENCIALES - Credencial actualizada temporal");
+    res.json({ message: "Credencial actualizada exitosamente" });
+  } catch (err: any) {
+    console.log("🔴 CREDENCIALES - Error al actualizar:", err.message || err);
+    res.status(500).json({ error: "Error al actualizar credencial", details: err.message || err });
   }
 };
 

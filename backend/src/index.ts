@@ -4,6 +4,9 @@ import dotenv from 'dotenv';
 import { getConnection } from './config/db';
 import authRoutes from "./routes/authRoutes";
 import credencialesRoutes from "./routes/credencialesRoutes";
+import usersRoutes from "./routes/usersRoutes";
+import documentsRoutes from "./routes/documentsRoutes";
+import remindersRoutes from "./routes/remindersRoutes";
 
 dotenv.config();
 
@@ -26,6 +29,9 @@ app.get('/api/ping', async (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/credenciales", credencialesRoutes);
+app.use("/api/users", usersRoutes);
+app.use("/api/documents", documentsRoutes);
+app.use("/api/reminders", remindersRoutes);
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
